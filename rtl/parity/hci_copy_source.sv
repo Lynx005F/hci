@@ -16,7 +16,7 @@
 /**
  * The **hci_copy_source** module is used to monitor an input hci interface
  * stream `tcdm_main` and copy it to an output hci interface `tcdm_copy`.
- * Together with hci_copy_sink this allows for fault detection on a chain of 
+ * Together with hci_copy_sink this allows for fault detection on a chain of
  * HCI modules.
  */
 
@@ -26,9 +26,11 @@
 module hci_copy_source
   import hci_package::*;
 (
-  hci_core_intf.monitor    tcdm_main,
-  hci_core_intf.initiator  tcdm_copy,
-  output logic fault_detected_o
+  input logic             clk_i,
+  input logic             rst_ni,
+  hci_core_intf.monitor   tcdm_main,
+  hci_core_intf.initiator tcdm_copy,
+  output logic            fault_detected_o
 );
 
   assign tcdm_copy.req      = tcdm_main.req;
@@ -44,7 +46,7 @@ module hci_copy_source
   assign tcdm_copy.id       = tcdm_main.id;
 
   // Compare Signals
-  assign fault_detected_o = 
+  assign fault_detected =
     ( tcdm_copy.gnt      != tcdm_main.gnt      ) |
     ( tcdm_copy.r_data   != tcdm_main.r_data   ) |
     ( tcdm_copy.r_valid  != tcdm_main.r_valid  ) |
@@ -55,5 +57,12 @@ module hci_copy_source
     ( tcdm_copy.r_evalid != tcdm_main.r_evalid ) |
     ( tcdm_copy.r_ecc    != tcdm_main.r_ecc    );
 
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      fault_detected_o <= '0;
+    end else begin
+      fault_detected_o <= fault_detected;
+    end
+  end
 
 endmodule // hci_copy_source

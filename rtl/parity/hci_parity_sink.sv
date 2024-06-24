@@ -14,26 +14,28 @@
  */
 
 /**
- * The **hci_parity_sink** module is used to monitor an input normal hci interface 
- * stream `tcdm_main` and compare it with a parity stream `tcdm_parity` which 
- * holds only the handshake and control info, as well as one parity bit per data 
- * element. Together with hci_parity_source this allows for low area fault 
- * detection on HCI by building a parity network that matches the 
+ * The **hci_parity_sink** module is used to monitor an input normal hci interface
+ * stream `tcdm_main` and compare it with a parity stream `tcdm_parity` which
+ * holds only the handshake and control info, as well as one parity bit per data
+ * element. Together with hci_parity_source this allows for low area fault
+ * detection on HCI by building a parity network that matches the
  * original network.
  */
 
 `include "hci_helpers.svh"
 
-module hci_parity_sink 
+module hci_parity_sink
   import hci_package::*;
 #(
   parameter hci_size_parameter_t `HCI_SIZE_PARAM(tcdm_main) = '0
 ) (
-  hci_core_intf.monitor   tcdm_main,
-  hci_core_intf.target    tcdm_parity,
-  output logic fault_detected_o
+  input logic           clk_i,
+  input logic           rst_ni,
+  hci_core_intf.monitor tcdm_main,
+  hci_core_intf.target  tcdm_parity,
+  output logic          fault_detected_o
 );
-  
+
   localparam DW = `HCI_SIZE_GET_DW(tcdm_main);
   localparam BW = `HCI_SIZE_GET_BW(tcdm_main);
 
@@ -66,7 +68,7 @@ module hci_parity_sink
   assign local_main_ecc = ^tcdm_main.ecc;
 
   // Compare Signals
-  assign fault_detected_o = 
+  assign fault_detected =
       ( tcdm_parity.req      != tcdm_main.req      ) |
       ( tcdm_parity.wen      != tcdm_main.wen      ) |
       ( tcdm_parity.be       != tcdm_main.be       ) |
@@ -77,5 +79,13 @@ module hci_parity_sink
       ( tcdm_parity.data     != local_main_data    ) |
       ( tcdm_parity.ereq     != local_main_ereq    ) |
       ( tcdm_parity.ecc      != local_main_ecc     );
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      fault_detected_o <= '0;
+    end else begin
+      fault_detected_o <= fault_detected;
+    end
+  end
 
 endmodule // hci_parity_sink

@@ -14,22 +14,24 @@
  */
 
 /**
- * The **hci_copy_sink** module is used to monitor an input normal hci interface 
- * stream `tcdm_main` and compare it with a copy  stream `tcdm_copy` element. 
- * Together with hci_copy_sink this allows for fault detection on a chain of 
+ * The **hci_copy_sink** module is used to monitor an input normal hci interface
+ * stream `tcdm_main` and compare it with a copy  stream `tcdm_copy` element.
+ * Together with hci_copy_sink this allows for fault detection on a chain of
  * HCI modules.
  */
 
 `include "hci_helpers.svh"
 
-module hci_copy_sink 
+module hci_copy_sink
   import hci_package::*;
 (
-  hci_core_intf.monitor   tcdm_main,
-  hci_core_intf.target    tcdm_copy,
-  output logic fault_detected_o
+  input logic           clk_i,
+  input logic           rst_ni,
+  hci_core_intf.monitor tcdm_main,
+  hci_core_intf.target  tcdm_copy,
+  output logic          fault_detected_o
 );
-  
+
   assign tcdm_copy.gnt      = tcdm_main.gnt;
   assign tcdm_copy.r_data   = tcdm_main.r_data;
   assign tcdm_copy.r_valid  = tcdm_main.r_valid;
@@ -41,7 +43,8 @@ module hci_copy_sink
   assign tcdm_copy.r_ecc    = tcdm_main.r_ecc;
 
   // Compare Signals
-  assign fault_detected_o = 
+  logic fault_detected;
+  assign fault_detected =
     ( tcdm_main.req      != tcdm_copy.req      ) |
     ( tcdm_main.ereq     != tcdm_copy.ereq     ) |
     ( tcdm_main.r_eready != tcdm_copy.r_eready ) |
@@ -53,5 +56,13 @@ module hci_copy_sink
     ( tcdm_main.r_ready  != tcdm_copy.r_ready  ) |
     ( tcdm_main.user     != tcdm_copy.user     ) |
     ( tcdm_main.id       != tcdm_copy.id       );
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      fault_detected_o <= '0;
+    end else begin
+      fault_detected_o <= fault_detected;
+    end
+  end
 
 endmodule // hci_copy_sink

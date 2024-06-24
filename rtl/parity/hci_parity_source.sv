@@ -29,9 +29,11 @@ module hci_parity_source
 # (
   parameter hci_size_parameter_t `HCI_SIZE_PARAM(tcdm_main) = '0
 ) (
-  hci_core_intf.monitor    tcdm_main,
-  hci_core_intf.initiator  tcdm_parity,
-  output logic fault_detected_o
+  input logic             clk_i,
+  input logic             rst_ni,
+  hci_core_intf.monitor   tcdm_main,
+  hci_core_intf.initiator tcdm_parity,
+  output logic            fault_detected_o
 );
 
   localparam DW = `HCI_SIZE_GET_DW(tcdm_main);
@@ -63,7 +65,7 @@ module hci_parity_source
   assign local_main_r_ecc = ^tcdm_main.r_ecc;
 
   // Compare Signals
-  assign fault_detected_o =
+  assign fault_detected =
       ( tcdm_main.gnt       != tcdm_parity.gnt      ) |
       ( tcdm_main.r_data    != tcdm_parity.r_data   ) |
       ( tcdm_main.r_valid   != tcdm_parity.r_valid  ) |
@@ -74,5 +76,13 @@ module hci_parity_source
       ( local_main_r_evalid != tcdm_parity.r_evalid ) |
       ( tcdm_main.r_eready  != tcdm_parity.r_eready ) |
       ( local_main_r_ecc    != tcdm_parity.r_ecc    );
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      fault_detected_o <= '0;
+    end else begin
+      fault_detected_o <= fault_detected;
+    end
+  end
 
 endmodule // hci_parity_source
