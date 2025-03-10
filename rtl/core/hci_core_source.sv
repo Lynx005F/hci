@@ -112,7 +112,10 @@ module hci_core_source
 
   // control plane
   input  hci_streamer_ctrl_t   ctrl_i,
-  output hci_streamer_flags_t  flags_o
+  output hci_streamer_flags_t  flags_o,
+
+  // Signals for external fault detection
+  output logic [1:0]           fault_probes_o   
 );
 
   localparam int unsigned DATA_WIDTH = `HCI_SIZE_GET_DW(tcdm);
@@ -210,9 +213,11 @@ module hci_core_source
         end
       endcase
     end
+    assign fault_probes_o = addr_misaligned_q;
   end
   else begin
     assign stream_data_aligned[DATA_WIDTH-1:0] = stream_data_misaligned[DATA_WIDTH-1:0];
+    assign fault_probes_o = 2'b0;
   end
 
   assign tcdm.r_ready = stream.ready;
